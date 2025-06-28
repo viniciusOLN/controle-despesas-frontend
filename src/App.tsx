@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table'
 import { Button } from './components/ui/button'
-import { Input } from './components/ui/input'
 import { Plus} from 'lucide-react'
 import {
   Dialog,
@@ -13,6 +12,7 @@ import { getExpensesFromCurrentMonth } from './services/expense/get-all-expenses
 import { toast } from 'sonner'
 import type { ExpenseDetails } from './services/expense/models/ExpenseDetails'
 import { EditExpenseComponent } from './components/edit-expense'
+import { ExpenseFilters } from './components/expense-filters'
 
 export function App() {
   const [open, setOpen] = React.useState(false)
@@ -64,8 +64,6 @@ export function App() {
     return matchesDescription && matchesValue;
   });
 
- 
-
  useEffect(() => {
   loadExpensesFromThisMonth();
  }, [])
@@ -75,25 +73,12 @@ export function App() {
       <h1 className='text-3xl font-bold'>Consulta de Despesas</h1>
 
       <div className="flex items-center justify-between">
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className='flex items-center gap-2'
-          >
-            <Input
-              name="expense"
-              placeholder='Nome da despesa'
-              className='w-auto'
-              value={filterDescription}
-              onChange={(e) => setFilterDescription(e.target.value)}
-            />
-            <Input
-              name="value"
-              placeholder='Valor da despesa'
-              className='w-auto'
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
-            />            
-          </form>
+          <ExpenseFilters
+            filterDescription={filterDescription}
+            filterValue={filterValue}
+            onDescriptionChange={setFilterDescription}
+            onValueChange={setFilterValue}
+          />
           <Dialog open={open} onOpenChange={setOpen}>
            <DialogTrigger asChild>
                 <Button variant="link" className='text-(--personalized)'>
@@ -107,7 +92,6 @@ export function App() {
           </Dialog>          
       </div>
       <div className='border rounded p-2'>        
-
         <Table className='text-[var(--personalized)]'>
           <TableHeader>
             <TableRow>             
