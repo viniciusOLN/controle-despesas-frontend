@@ -9,20 +9,25 @@ import { Label } from "./ui/label"
 import { Input } from "./ui/input"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "./ui/select"
-import AddressForm, { type AddressFormHandle } from "./address-form"
+import AddressForm, { type AddressData, type AddressFormHandle } from "./address-form"
 import { getAllExpenseCategories } from "@/services/category/get-all-categories-expense"
 import type { Category } from "@/services/category/models/Category"
 import { getAllPaymentTypes } from "@/services/type-payment/get-all-payment-types-expense"
 import type { PaymentType } from "@/services/type-payment/models/PaymentType"
 import { createNewAddress, type AddressRequest } from "@/services/address/create-new-address"
 import { createNewExpense, type ExpenseRequest } from "@/services/expense/create-new-expense"
+import type { ExpenseDetails } from "@/services/expense/models/ExpenseDetails"
+import { updateAddress } from "@/services/address/update-address"
+import { updateExpense } from "@/services/expense/update-expense"
 
 interface NewExpenseComponentProps {
   setParentOpen: React.Dispatch<React.SetStateAction<boolean>>
+  expense: ExpenseDetails
+  onReloadExpenses: () => Promise<void>
 }
 
-export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps) {
-  const addressRef = React.useRef<AddressFormHandle>(null)
+export function EditExpenseComponent({ setParentOpen, expense, onReloadExpenses }: NewExpenseComponentProps) {
+  const addressRef = React.useRef<{ getAddressData: () => AddressData; setAddressData: (data: Partial<AddressData>) => void }>(null);
   const [description, setDescription] = React.useState("")
   const [buyDate, setBuyDate] = React.useState("");
   const [value, setValue] = React.useState("")
@@ -30,6 +35,7 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | undefined>()
   const [paymentTypes, setpaymentTypes] = React.useState<PaymentType[]>([])  
   const [selectedTypePayment, setSelectedTypePayment] = React.useState<string | undefined>()
+  const [errors, setErrors] = React.useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = React.useState(false);
   const [isLoadingSave, setIsLoadingSave] = React.useState(false);
 
@@ -76,31 +82,29 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
   }
 
 
-  async function createNewAddressRequest(request: AddressRequest): Promise<number> {
+  async function updateAddressRequest(request: AddressRequest): Promise<boolean> {
     try {
-        const { success, data } = await createNewAddress(request);
+        const { success, data } = await updateAddress(expense.addressId, request);
         
         if (success) {
             if (data) {
-                return data;
+                return true;
             } else {
-                toast("Endereço inválido ou resposta inesperada.");
+                toast("Não foi possível atualizar o endereço");
             }
         } else {
-            console.error("Erro ao adicionar endereço.");
-            toast("Não foi possível adicionar novo endereço.");
-            setIsLoadingSave(false)
+            console.error("Não foi possível atualizar o endereço");
+            toast("Não foi possível atualizar o endereço");
         }
     } catch (error) {
-        console.error("Erro inesperado ao criar endereço:", error);
-        toast("Erro inesperado ao tentar adicionar o endereço.");
-        setIsLoadingSave(false)
+        console.error("Não foi possível atualizar o endereço", error);
+        toast("Não foi possível atualizar o endereço");
     }
 
-    return -1;
+    return false;
   }
 
-  async function createNewExpenseRequest(addressId: number) {
+  async function updateExpenseRequest(addressId: number) {
     try {
         const expenseRequest: ExpenseRequest = {
             addressId: addressId,
@@ -111,21 +115,21 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
             buyDate: new Date(buyDate).toISOString(),
         };
 
-        const { success, data } = await createNewExpense(expenseRequest);
+        const { success, data } = await updateExpense(expense.id, expenseRequest);
 
         if (success) {
             if (data) {
-                toast("Despesa adicionada com sucesso!");
+                toast("Despesa atualizada com sucesso!");
             } else {
-                toast("Resposta inesperada ao adicionar a despesa.");
+                toast("Resposta inesperada ao atualizar a despesa.");
             }
         } else {
-            console.error("Erro ao adicionar despesa.");
-            toast("Não foi possível adicionar nova despesa.");
+            console.error("Erro ao atualizar despesa.");
+            toast("Não foi possível atualizar nova despesa.");
         }
     } catch (error) {
-        console.error("Erro inesperado ao criar despesa:", error);
-        toast("Erro inesperado ao tentar adicionar a despesa.");
+        console.error("Erro inesperado ao atualizar despesa:", error);
+        toast("Erro inesperado ao tentar atualizar a despesa.");
     }
  }
 
@@ -137,20 +141,38 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
     }
 
     fetchData();
-  }, [])
+    if (expense && addressRef.current?.setAddressData) {
+        setTimeout(() => {
+            addressRef.current?.setAddressData({
+                zipCode: expense.zipCode ?? "",
+                state: expense.state ?? "",
+                city: expense.city ?? "",
+                district: expense.district ?? "",
+                street: expense.street ?? "",
+                number: expense.number ?? "",
+                complement: expense.complement ?? "",
+            })
+        }, 100)
+        setDescription(expense.description ?? "");
+        setValue(expense.value ? String(expense.value) : "");
+        setSelectedTypePayment(expense.paymentTypeId ? String(expense.paymentTypeId) : undefined);
+        setSelectedCategoryId(expense.categoryId ? String(expense.categoryId) : undefined);
+        setBuyDate(expense.buyDate);
+    }
+
+  }, [expense])
 
   function validateForm(): { [key: string]: string } {
     const newErrors: { [key: string]: string } = {};
-
-    if (!buyDate) {
-        newErrors.buyDate = "Data da compra é obrigatória.";
-    }
 
     if (!description.trim()) {
         newErrors.description = "Descrição é obrigatória.";
     }
     if (!value.trim() || isNaN(Number(value)) || Number(value) <= 0) {
         newErrors.value = "Valor deve ser um número maior que zero.";
+    }
+    if (!buyDate) {
+        newErrors.buyDate = "Data da compra é obrigatória.";
     }
     if (!selectedCategoryId) {
         newErrors.category = "Selecione uma categoria.";
@@ -188,7 +210,7 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
     try {
         if (addressRef.current) {
             const address = addressRef.current.getAddressData();
-            const addressId = await createNewAddressRequest({
+            const addressId = await updateAddressRequest({
                 zipCode: address.zipCode.replace(/[-.]/g, ''),
                 city: address.city,
                 complement: address.complement,
@@ -198,9 +220,10 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
                 street: address.street,
             });
 
-            if (addressId != -1) {
-                await createNewExpenseRequest(addressId);
+            if (addressId) {
+                await updateExpenseRequest(expense.addressId);
                 setParentOpen(false);
+                await onReloadExpenses();
             } else {
                 toast.error("Não foi possível salvar o endereço.");
             }
@@ -216,7 +239,7 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
   return (
     <>
         <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-foreground">Nova Despesa</DialogTitle> 
+            <DialogTitle className="text-lg font-semibold text-foreground">Editar Despesa</DialogTitle> 
             <DialogDescription></DialogDescription>
             <div className="h-px bg-muted mt-2 mb-1" />             
         </DialogHeader>

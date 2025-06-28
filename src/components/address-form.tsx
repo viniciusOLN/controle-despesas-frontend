@@ -1,26 +1,78 @@
-import React from "react"
+import React, { forwardRef, useImperativeHandle } from "react"
 import { Label } from "./ui/label"
 import { Input } from "./ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "./ui/select"
 import { STATES_BRASIL } from "@/utils/states"
+import { getViaCepAddress } from "@/services/address/address-cep-api"
 
-export function AddressForm(){
+export interface AddressData {
+  zipCode: string
+  state: string
+  city: string
+  district: string
+  street: string
+  number: string
+  complement: string
+}
+
+export interface AddressFormHandle {
+  getAddressData: () => AddressData
+  setAddressData: (data: Partial<AddressData>) => void
+}
+
+
+const AddressForm = forwardRef<AddressFormHandle>((_, ref) => {
   const [zipCode, setZipCode] = React.useState("")
-  const [stateAddress, setStateAddress] = React.useState("")
+  const [state, setState] = React.useState("")
   const [city, setCity] = React.useState("")
   const [district, setDistrict] = React.useState("")
   const [street, setStreet] = React.useState("")
   const [number, setNumber] = React.useState("")
   const [complement, setComplement] = React.useState("")
   const [showAddressFields, setShowAddressFields] = React.useState(false)
-  const [autoFilledFields, setAutoFilledFields] = React.useState<Record<string, boolean>>({})   
+  const [autoFilledFields, setAutoFilledFields] = React.useState<Record<string, boolean>>({}) 
+  const [isProgrammaticZipCode, setIsProgrammaticZipCode] = React.useState(false);
+  const [isSettingAddress, setIsSettingAddress] = React.useState(false);
   
-  React.useEffect(() => {
+  useImperativeHandle(ref, () => ({
+    getAddressData: (): AddressData => ({
+      zipCode,
+      state,
+      city,
+      district,
+      street,
+      number,
+      complement,
+    }),
+     setAddressData: (data: Partial<AddressData>) => {        
+        setIsSettingAddress(true);        
+        const formattedZip = data.zipCode ? formatZipCode(data.zipCode) : "";
+        if (data.zipCode !== undefined) setZipCode(formattedZip)
+        if (data.state !== undefined) setState(data.state)
+        if (data.city !== undefined) setCity(data.city)
+        if (data.district !== undefined) setDistrict(data.district)
+        if (data.street !== undefined) setStreet(data.street)
+        if (data.number !== undefined) setNumber(data.number)
+        if (data.complement !== undefined) setComplement(data.complement)
+                
+        setAutoFilledFields({})
+        setShowAddressFields(true)   
+        setIsProgrammaticZipCode(true)     
+     }
+  }))
+  
+  React.useEffect(() => {    
+    if (zipCode === "") return;
+    if (isProgrammaticZipCode && !isSettingAddress) {        
+        setIsProgrammaticZipCode(false);
+        return;
+    }
     const clean = zipCode.replace(/\D/g, "")
-    if (clean.length === 8) {
+    if (clean.length === 8 && !isSettingAddress) {
+        console.log('oiaa')
         handleZipCodeBlur()
     }
-  }, [zipCode])
+  }, [zipCode, isSettingAddress])
 
 
   function formatZipCode(value: string): string {
@@ -35,18 +87,16 @@ export function AddressForm(){
     if (cleanZipCode.length !== 8) return
 
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${cleanZipCode}/json/`)
-      const data = await res.json()
-
+      const data = await getViaCepAddress(cleanZipCode);
        setShowAddressFields(true)
 
       if (data.erro) {
-        setStateAddress("")
+        setState("")
         setCity("")
         setDistrict("")
         setStreet("")       
       }else{
-        setStateAddress(data.uf || "")
+        setState(data.uf || "")
         setCity(data.localidade || "")
         setDistrict(data.bairro || "")
         setStreet(data.logradouro || "")
@@ -66,23 +116,23 @@ export function AddressForm(){
   return (
     <>
         <div className="grid grid-cols-4 items-center gap-3">                
-                <Label htmlFor="cep">CEP</Label>
-                <Input
-                    className="col-span-3"
-                    id="cep"
-                    placeholder="CEP"
-                    value={zipCode}
-                    onChange={(e) => {
-                        const formatted = formatZipCode(e.target.value)
+            <Label htmlFor="cep">CEP</Label>
+            <Input
+                className="col-span-3"
+                id="cep"
+                placeholder="CEP"
+                value={zipCode}
+                onChange={(e) => {
+                    const formatted = formatZipCode(e.target.value)
                         setZipCode(formatted)
-                    }}
-                />
+                }}
+            />
             </div>
             {showAddressFields && (
                 <>
                     <div className="grid grid-cols-4 items-center gap-3">
                         <Label htmlFor="uf">Estado (UF)</Label>
-                        <Select value={stateAddress} onValueChange={setStateAddress} disabled={autoFilledFields["state"]}>
+                        <Select value={state} onValueChange={setState} disabled={autoFilledFields["state"]}>
                             <SelectTrigger className="col-span-3" id="uf">
                                 <SelectValue placeholder="Selecione o estado" />
                             </SelectTrigger>
@@ -121,7 +171,7 @@ export function AddressForm(){
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-3">
-                        <Label htmlFor="logradouro">Rua (Logradouro)</Label>
+                        <Label htmlFor="logradouro">Rua</Label>
                         <Input
                             className="col-span-3"
                             id="logradouro"
@@ -156,4 +206,6 @@ export function AddressForm(){
             )}     
     </>
   )
-}
+})
+
+export default AddressForm
