@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { NewExpenseComponent } from './components/ui/NewExpense'
+import { NewExpenseComponent } from './components/create-new-expense'
 
 export function App() {
   const [open, setOpen] = React.useState(false)
