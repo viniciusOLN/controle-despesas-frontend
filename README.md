@@ -7,6 +7,7 @@ Este projeto contém uma aplicação frontend (React + ts + vite) básica para o
 ## ✅ Pré-requisitos
 
 - [Docker](https://www.docker.com/)
+- [Node](https://nodejs.org/pt)
 
 ---
 
