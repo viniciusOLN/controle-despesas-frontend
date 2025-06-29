@@ -87,7 +87,7 @@ export function App() {
               </Button>
            </DialogTrigger>
            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <NewExpenseComponent setParentOpen={setOpen}/>
+              <NewExpenseComponent setParentOpen={setOpen} onReloadExpenses = {loadExpensesFromThisMonth}/>
             </DialogContent>
           </Dialog>          
       </div>

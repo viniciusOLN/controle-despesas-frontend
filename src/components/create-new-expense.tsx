@@ -19,9 +19,10 @@ import { createNewExpense, type ExpenseRequest } from "@/services/expense/create
 
 interface NewExpenseComponentProps {
   setParentOpen: React.Dispatch<React.SetStateAction<boolean>>
+  onReloadExpenses: () => Promise<void>
 }
 
-export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps) {
+export function NewExpenseComponent({ setParentOpen, onReloadExpenses }: NewExpenseComponentProps) {
   const addressRef = React.useRef<AddressFormHandle>(null)
   const [description, setDescription] = React.useState("")
   const [buyDate, setBuyDate] = React.useState("");
@@ -200,6 +201,7 @@ export function NewExpenseComponent({ setParentOpen }: NewExpenseComponentProps)
 
             if (addressId != -1) {
                 await createNewExpenseRequest(addressId);
+                await onReloadExpenses();
                 setParentOpen(false);
             } else {
                 toast.error("Não foi possível salvar o endereço.");
