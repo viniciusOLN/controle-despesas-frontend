@@ -1,4 +1,4 @@
-# Controle de Despesas - Backend + MySQL com Docker
+# Controle de Despesas - Frontend
 
 Este projeto contém uma aplicação frontend (React + ts + vite) básica para o gerenciamento de despesas.
 
