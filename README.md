@@ -13,7 +13,6 @@ Este projeto contém uma aplicação frontend (React + ts + vite) básica para o
 
 ## ▶️ Rodando o projeto com Docker
 
-### 1. Clone o repositório
 Para rodar o projeto com docker é necessário ter primeiramente o docker instalado. Após instalação e configuração basta rodar o comando:
  - docker compose up -d
 
