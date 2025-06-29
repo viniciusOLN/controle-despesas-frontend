@@ -1,6 +1,6 @@
 # Controle de Despesas - Backend + MySQL com Docker
 
-Este projeto contém uma aplicação backend (Spring Boot) conectada a um banco MySQL, utilizando Docker e Docker Compose.
+Este projeto contém uma aplicação frontend (React + ts + vite) básica para o gerenciamento de despesas.
 
 ---
 
